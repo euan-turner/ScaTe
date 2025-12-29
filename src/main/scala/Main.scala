@@ -1,27 +1,30 @@
 import dsl.*
+import ffi.NativeBackend
 
 @main def run(): Unit =
-  // // Setup Backends
-  // implicit val cpuBackend = new NativeBackend("lib/libcpu.so")
-  // // implicit val cudaBackend = new NativeBackend("./libcuda.so")
+  // Setup CPU backend
+  given NativeBackend = NativeBackend.cpu
 
-  // println("--- CPU Run ---")
-  // val t1 = new Tensor(5, Device.CPU)
-  // val t2 = new Tensor(5, Device.CPU)
-  // t1.set(0, 1.0f); t2.set(0, 10.0f)
+  println("--- ScaTe DSL Demo ---")
   
-  // val cpuRes = Ops.add(t1, t2)
-  // println(s"CPU Result: ${cpuRes.get(0)}") // Should be 11.0
-
-  // println("--- CUDA Run ---")
-  // val g1 = new Tensor(5, Device.CUDA)
-  // val g2 = new Tensor(5, Device.CUDA)
-  // g1.set(0, 2.0f); g2.set(0, 20.0f)
-
-  // val gpuRes = Ops.add(g1, g2)
-  // println(s"GPU Result: ${gpuRes.get(0)}") // Should be 22.0
-  
-  val t1 = Tensor.of(Vector(2, 3), 1.0f)          
-  val t2 = Tensor.zero[DType.FP32](Vector(2, 3)) 
+  // Build computation graph (no execution yet)
+  val t1 = Tensor.of(Vector(5), 1.0f)   
+  val t2 = Tensor.of(Vector(5), 10.0f)
   val t3 = t1 + t2
-  println(t3)
+  
+  println(s"Graph: $t3")
+  
+  // Trigger evaluation - compiles and executes the graph
+  val t3Mat = t3.eval
+  
+  // Now we can access elements (only available on MaterialTensor)
+  println(s"t3[0] = ${t3Mat.get(0)}")  // Should be 11.0
+  println(s"t3[4] = ${t3Mat.get(4)}")  // Should be 11.0
+  
+  // Can also get all values as an array
+  println(s"t3.toArray = ${t3Mat.toArray.mkString("[", ", ", "]")}")
+  
+  // Partial evaluation demo: use evaluated tensor in further computation
+  val t4 = t3Mat + t1
+  val t4Mat = t4.eval
+  println(s"t4[0] = ${t4Mat.get(0)}")  // Should be 12.0
