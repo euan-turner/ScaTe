@@ -24,14 +24,15 @@
 
 ### **2.1 The AST**
 
-- [ ] Create Scala case classes for `Tensor`
-- [ ] Create Scala case classes for `Op` (Add, Mul)
-- [ ] Create Scala case classes for `Graph`
+- [x] Create Scala case classes for `Tensor`
+- [x] Create Scala case classes for `Op` (Add, Mul)
+- [x] Create Scala case classes for `Graph`
 
 ### **2.2 Lazy Evaluation**
 
-- [ ] Implement `.eval()` method that traverses the graph
-- [ ] Dispatch calls to drivers only when needed
+- [ ] Implement `.eval()` method that executes the graph
+- [ ] Update drivers with necessary calls
+- [ ] Delay driver calls until `eval`
 
 ### **2.3 Buffer Management**
 

@@ -1,17 +1,17 @@
-package tensordsl
+import dsl.*
 
 @main def run(): Unit =
-  // Setup Backends
-  implicit val cpuBackend = new NativeBackend("lib/libcpu.so")
-  // implicit val cudaBackend = new NativeBackend("./libcuda.so")
+  // // Setup Backends
+  // implicit val cpuBackend = new NativeBackend("lib/libcpu.so")
+  // // implicit val cudaBackend = new NativeBackend("./libcuda.so")
 
-  println("--- CPU Run ---")
-  val t1 = new Tensor(5, Device.CPU)
-  val t2 = new Tensor(5, Device.CPU)
-  t1.set(0, 1.0f); t2.set(0, 10.0f)
+  // println("--- CPU Run ---")
+  // val t1 = new Tensor(5, Device.CPU)
+  // val t2 = new Tensor(5, Device.CPU)
+  // t1.set(0, 1.0f); t2.set(0, 10.0f)
   
-  val cpuRes = Ops.add(t1, t2)
-  println(s"CPU Result: ${cpuRes.get(0)}") // Should be 11.0
+  // val cpuRes = Ops.add(t1, t2)
+  // println(s"CPU Result: ${cpuRes.get(0)}") // Should be 11.0
 
   // println("--- CUDA Run ---")
   // val g1 = new Tensor(5, Device.CUDA)
@@ -20,3 +20,8 @@ package tensordsl
 
   // val gpuRes = Ops.add(g1, g2)
   // println(s"GPU Result: ${gpuRes.get(0)}") // Should be 22.0
+  
+  val t1 = Tensor.of(Vector(2, 3), 1.0f)          
+  val t2 = Tensor.zero[DType.FP32](Vector(2, 3)) 
+  val t3 = t1 + t2
+  println(t3)
