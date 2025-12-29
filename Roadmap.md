@@ -30,7 +30,8 @@
 
 ### **2.2 Lazy Evaluation**
 
-- [ ] Implement `.eval()` method that executes the graph
+- [x] Implement `.eval()` method that executes the graph
+- [ ] Update IR traversal to full stack in `IR Design.md`
 - [ ] Update drivers with necessary calls
 - [ ] Delay driver calls until `eval`
 

@@ -32,6 +32,21 @@ class NativeBackend(libraryPath: String):
       ValueLayout.ADDRESS, ValueLayout.ADDRESS, ValueLayout.ADDRESS, ValueLayout.JAVA_INT
     ))
 
+  val fillFloatHandle: MethodHandle = find("tensor_fill_float",
+    FunctionDescriptor.ofVoid(
+      ValueLayout.ADDRESS, ValueLayout.JAVA_INT, ValueLayout.JAVA_FLOAT
+    ))
+
+  val fillIntHandle: MethodHandle = find("tensor_fill_int",
+    FunctionDescriptor.ofVoid(
+      ValueLayout.ADDRESS, ValueLayout.JAVA_INT, ValueLayout.JAVA_INT
+    ))
+
+  val copyHandle: MethodHandle = find("tensor_copy",
+    FunctionDescriptor.ofVoid(
+      ValueLayout.ADDRESS, ValueLayout.ADDRESS, ValueLayout.JAVA_INT
+    ))
+
   /** Allocate memory for a tensor of given size (in bytes) */
   def allocTensor(sizeBytes: Long): MemorySegment =
     // Use invoke (not invokeExact) for Scala compatibility
@@ -46,96 +61,18 @@ class NativeBackend(libraryPath: String):
   def vectorAdd(a: MemorySegment, b: MemorySegment, out: MemorySegment, n: Int): Unit =
     vecAddFloat.invoke(a, b, out, n)
 
+  /** Fill a buffer with a float value */
+  def fillFloat(ptr: MemorySegment, n: Int, value: Float): Unit =
+    fillFloatHandle.invoke(ptr, n, value)
+
+  /** Fill a buffer with an int value */
+  def fillInt(ptr: MemorySegment, n: Int, value: Int): Unit =
+    fillIntHandle.invoke(ptr, n, value)
+
+  /** Copy data between memory segments */
+  def copy(dst: MemorySegment, src: MemorySegment, n: Int): Unit =
+    copyHandle.invoke(dst, src, n)
+
 object NativeBackend:
   /** Default CPU backend - lazily initialized */
   lazy val cpu: NativeBackend = new NativeBackend("lib/libcpu.so")
-
-
-/**
-  * Graph evaluator - walks the AST and executes operations via native backend.
-  */
-object Evaluator:
-  
-  /** Evaluate a node graph and return a MaterialTensor with computed data */
-  def evaluate[T <: DType : ClassTag](node: TypedNode[T])(using backend: NativeBackend): MaterialTensor[T] =
-    node match
-      case mt: MaterialTensor[T] => 
-        // Already materialized, just return it
-        mt
-      
-      case Add(x, y) =>
-        // Recursively evaluate operands
-        val leftMat = evaluate(x)
-        val rightMat = evaluate(y)
-        
-        // Validate shapes match
-        require(leftMat.shape == rightMat.shape, 
-          s"Shape mismatch: ${leftMat.shape} vs ${rightMat.shape}")
-        
-        val size = leftMat.shape.product
-        val sizeBytes = size * elementSize[T]
-        
-        // Allocate output
-        val outData = backend.allocTensor(sizeBytes)
-        
-        // Dispatch to native backend based on element type
-        summon[ClassTag[T]].runtimeClass.getSimpleName match
-          case "FP32" =>
-            backend.vectorAdd(leftMat.data, rightMat.data, outData, size)
-          case "INT32" =>
-            // TODO: implement int vector add in C++
-            throw new UnsupportedOperationException("INT32 add not yet implemented in backend")
-          case other =>
-            throw new UnsupportedOperationException(s"Unknown type: $other")
-        
-        MaterialTensor[T](leftMat.shape, leftMat.device, outData)
-      
-      case Of(Tensor(shape, device), Literal(value)) =>
-        // Initialize tensor with a constant value
-        val size = shape.product
-        val sizeBytes = size * elementSize[T]
-        val data = backend.allocTensor(sizeBytes)
-        
-        // Fill with the value
-        summon[ClassTag[T]].runtimeClass.getSimpleName match
-          case "FP32" =>
-            val floatVal = value.asInstanceOf[Float]
-            for i <- 0.until(size) do
-              data.setAtIndex(ValueLayout.JAVA_FLOAT, i.toLong, floatVal)
-          case "INT32" =>
-            val intVal = value.asInstanceOf[Int]
-            for i <- 0.until(size) do
-              data.setAtIndex(ValueLayout.JAVA_INT, i.toLong, intVal)
-          case other =>
-            throw new UnsupportedOperationException(s"Unknown type: $other")
-        
-        MaterialTensor[T](shape, device, data)
-      
-      case Zero(Tensor(shape, device)) =>
-        // Initialize tensor with zeros
-        val size = shape.product
-        val sizeBytes = size * elementSize[T]
-        val data = backend.allocTensor(sizeBytes)
-        
-        // Memory from malloc may not be zeroed, so explicitly zero it
-        summon[ClassTag[T]].runtimeClass.getSimpleName match
-          case "FP32" =>
-            for i <- 0.until(size) do
-              data.setAtIndex(ValueLayout.JAVA_FLOAT, i.toLong, 0.0f)
-          case "INT32" =>
-            for i <- 0.until(size) do
-              data.setAtIndex(ValueLayout.JAVA_INT, i.toLong, 0)
-          case other =>
-            throw new UnsupportedOperationException(s"Unknown type: $other")
-        
-        MaterialTensor[T](shape, device, data)
-      
-      case _ =>
-        throw new UnsupportedOperationException(s"Cannot evaluate node: $node")
-  
-  /** Get element size in bytes for a DType */
-  private def elementSize[T <: DType : ClassTag]: Int =
-    summon[ClassTag[T]].runtimeClass.getSimpleName match
-      case "FP32" => 4
-      case "INT32" => 4
-      case other => throw new UnsupportedOperationException(s"Unknown type: $other")

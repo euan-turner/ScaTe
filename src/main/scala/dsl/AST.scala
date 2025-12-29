@@ -114,10 +114,15 @@ final case class Literal[T <: DType : ClassTag](repr: Any) extends TypedNode[T]:
 extension [T <: DType](left: TypedNode[T])
   def +(right: TypedNode[T]): TypedNode[T] = Add(left, right)
 
-// Eval extension - triggers computation and returns MaterialTensor
+// Eval extension - compiles AST to IR and executes via native backend
 extension [T <: DType : ClassTag](node: TypedNode[T])
-  def eval(using backend: ffi.NativeBackend): MaterialTensor[T] =
-    ffi.Evaluator.evaluate(node)
+  /** Compile and execute the computation graph, returning a MaterialTensor with the result */
+  def eval(debug: Boolean = false)(using backend: ffi.NativeBackend): MaterialTensor[T] =
+    node match
+      case mt: MaterialTensor[T] => mt  // Already materialized
+      case _ =>
+        val program = Compiler.compile(node, debug)
+        Executor.run[T](program)
 
 // Accessors - only available on MaterialTensor (compile-time safety)
 extension [T <: DType](tensor: MaterialTensor[T])(using et: ElementType[T])
