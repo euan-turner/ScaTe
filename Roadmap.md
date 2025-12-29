@@ -31,26 +31,34 @@
 ### **2.2 Lazy Evaluation**
 
 - [x] Implement `.eval()` method that executes the graph
-- [ ] Update IR traversal to full stack in `IR Design.md`
-- [ ] Update drivers with necessary calls
-- [ ] Delay driver calls until `eval`
+- [ ] Extend AST to several pointwise ops (`sub,hadamard,relu` and `matmul`)
+- [ ] Semantic checking on AST (types, devices, shapes)
+- [ ] Convert AST to DAG
+- [ ] Convert DAG to normalised Tensor IR
+- [ ] Convert normalised Tensor IR to Loop IR and fused pointwise ops (no broadcasting initially)
+- [ ] Update c++ driver with matmul, pointwise ops and fused interpreter kernel
+- [ ] Fuse pointwise ops and keep matmul separate
 
-### **2.3 Buffer Management**
-
-- [ ] Stop allocating fresh memory for every intermediate result
-- [ ] Implement basic "Arena" or "Pool" in C++
-- [ ] Add Scala controls for memory pool
 
 ## **Phase 3: Optimization & Scale**
 
 **Objective:** Optimise captured operations
 
-### **3.1 Fusing**
+### **3.1 Graph Optimisations**
+ 
+- [ ] Common subexpression elimination
+- [ ] Dead code elimination
+- [ ] Algebraic simplification
+- [ ] Constant folding and propagation
 
-- [ ] Detect patterns like `Add -> Relu` in the AST
-- [ ] Call single fused kernel for detected patterns
+### **3.2 Tensor Extensions**
 
-### **3.2 Asynchrony**
+- [ ] Broadcasting
+- [ ] Decompose complex ops (e.g. Softmax)
 
-- [ ] Move CUDA calls to separate thread OR use CUDA Streams
-- [ ] Ensure Scala isn't blocking while GPU crunches
+### **3.3 Loop Optimisations**
+
+- [ ] Fuse reductions with elementwise ops
+- [ ] Loop reordering
+- [ ] Tiling
+- [ ] Temporary elimination

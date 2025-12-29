@@ -73,7 +73,6 @@ Makes dataflow explicit and enables whole-graph reasoning and rewrites.
 - Dead code elimination (DCE)
 - Constant folding and propagation
 - Algebraic simplification
-- Canonicalisation (e.g. operand ordering)
 
 ### Example
 
